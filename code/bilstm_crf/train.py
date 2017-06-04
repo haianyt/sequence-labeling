@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from BILSTM_CRF import BILSTM_CRF
+from tensorflow.python import debug as tf_debug
 
 # python train.py train.in model -v validation.in -c char_emb -e 10 -g 2
 
@@ -41,16 +42,17 @@ else:
 print "building model"
 config = tf.ConfigProto(allow_soft_placement=True)
 with tf.Session(config=config) as sess:
-	with tf.device(gpu_config):
-		initializer = tf.random_uniform_initializer(-0.1, 0.1)
-		with tf.variable_scope("model", reuse=None, initializer=initializer):
-			model = BILSTM_CRF(num_chars=num_chars, num_classes=num_classes, num_steps=num_steps, num_epochs=num_epochs, embedding_matrix=embedding_matrix, is_training=True)
+	sess = tf_debug.LocalCLIDebugWrapperSession(sess)
+	# with tf.device(gpu_config):
+	initializer = tf.random_uniform_initializer(-0.1, 0.1)
+	with tf.variable_scope("model", reuse=None, initializer=initializer):
+		model = BILSTM_CRF(num_chars=num_chars, num_classes=num_classes, num_steps=num_steps, num_epochs=num_epochs, embedding_matrix=embedding_matrix, is_training=True)
 
-		print "training model"
-		tf.initialize_all_variables().run()
-		model.train(sess, save_path, X_train, y_train, X_val, y_val)
+	print "training model"
+	tf.global_variables_initializer().run()
+	model.train(sess, save_path, X_train, y_train, X_val, y_val)
 
-		print "final best f1 is: %f" % (model.max_f1)
+	print "final best f1 is: %f" % (model.max_f1)
 
-		end_time = time.time()
-		print "time used %f(hour)" % ((end_time - start_time) / 3600)
+	end_time = time.time()
+	print "time used %f(hour)" % ((end_time - start_time) / 3600)
